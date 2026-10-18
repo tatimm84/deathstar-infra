@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Terraform documentation
 
 Esta seção centraliza a documentação dos artefatos Terraform presentes neste repositório.
@@ -18,7 +12,7 @@ Esta seção centraliza a documentação dos artefatos Terraform presentes neste
 2. Para executar localmente, inicialize o Terraform e use `-var-file` apropriado:
 
 ```bash
-terraform init -backend-config="bucket=<bucket>" -backend-config="prefix=sz-deathStar-infra"
+terraform init -backend-config="bucket=<bucket>" -backend-config="prefix=deathstar-infra"
 terraform plan -var-file="envs/dev.tfvars"
 ```
 

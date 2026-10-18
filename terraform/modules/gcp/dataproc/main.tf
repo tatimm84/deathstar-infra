@@ -17,7 +17,7 @@
 #   cluster_config {
 #     # staging_bucket = "dataproc-staging-bucket"
 #     gce_cluster_config {
-#     #   network    = "suzano-vpc-sz-snop-dev"
+#     #   network    = "vpc-dev"
 #       subnetwork = "subnet-01"
 
 #     #   tags = ["foo", "bar"]

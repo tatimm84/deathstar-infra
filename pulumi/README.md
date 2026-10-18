@@ -1,6 +1,6 @@
 # Pulumi Infrastructure
 
-This directory contains the Pulumi infrastructure code for `sz-deathStar-infra`.
+This directory contains the Pulumi infrastructure code for `deathstar-infra`.
 
 ## Quick Start
 
@@ -13,7 +13,7 @@ uv sync
 # Configure stack
 pulumi stack init dev
 pulumi config set gcp:project your-project-id
-pulumi config set gcp:region southamerica-east1
+pulumi config set gcp:region us-central1
 
 # Preview changes
 pulumi preview
@@ -75,7 +75,7 @@ This infrastructure is deployed via Azure DevOps pipeline:
 
 ```yaml
 extends:
-  template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
   parameters:
     deathstar_mode: auto
     PULUMI_VAR_ENVIRONMENT: prod

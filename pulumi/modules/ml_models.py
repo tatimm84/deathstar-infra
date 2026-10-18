@@ -8,7 +8,7 @@ Required structure:
 {
     "artifact_repo": "ml-models",
     "image_path": "../src/dummy-service",
-    "bucket_path": "sz-heimdall-${__env__}-conf/model-catalog",
+    "bucket_path": "deathstar-${__env__}-conf/model-catalog",
     "bucket_config_content": {
         "model_version": "1.0.0",
         "owner": "risk-team",
@@ -300,7 +300,7 @@ def generate_ml_model_configs(
                 model_name=model_name,
                 bucket_path=content.get(
                     "bucket_path",
-                    f"sz-heimdall-{ENVIRONMENT}-conf/model-catalog",
+                    f"deathstar-{ENVIRONMENT}-conf/model-catalog",
                 ),
                 content=content.get("bucket_config_content", {}),
             )

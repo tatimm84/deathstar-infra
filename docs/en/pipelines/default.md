@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Pipeline: default
 
 Short: Default infrastructure pipeline that sets triggers, project parameters and reuses the `terraform_w_vars` template for Terraform stages.
@@ -11,7 +5,7 @@ Short: Default infrastructure pipeline that sets triggers, project parameters an
 ## Location
 
 - `pipelines/default.yaml`
-- Template referenced: `pipelines/templates/terraform_w_vars.yaml` (as a template reference `@sz-deathStar-infra`)
+- Template referenced: `pipelines/templates/terraform_w_vars.yaml` (as a template reference `@deathstar-infra`)
 
 ## Triggers
 
@@ -22,8 +16,8 @@ Short: Default infrastructure pipeline that sets triggers, project parameters an
 
 - `deathstar_mode` (default: `auto`) — operational mode for templates
 - `project_version` (default: `v1`) — project version suffix
-- `project_prefix` (default: `sz-snop`) — resource name prefix
-- `region` (default: `southamerica-east1`) — default GCP region
+- `project_prefix` (default: `deathstar-example`) — resource name prefix
+- `region` (default: `us-central1`) — default GCP region
 - `build_service_account` (default: `''`) — custom service account for pipeline execution (gcloud auth, terraform). If empty, uses `{project_prefix}-{environment}-account`
 - `TF_VAR_RUNNING_SERVICE_ACCOUNT` (default: `''`) — custom service account for GCP resources runtime (Cloud Run, Functions, BigQuery, etc.). If empty, uses `{project}@appspot.gserviceaccount.com`
 
@@ -37,7 +31,7 @@ Short: Default infrastructure pipeline that sets triggers, project parameters an
 
 This pipeline delegates the main work to a reusable template:
 
-- template: `pipelines/templates/terraform_w_vars.yaml@sz-deathStar-infra`
+- template: `pipelines/templates/terraform_w_vars.yaml@deathstar-infra`
   - parameters passed:
     - `deathstar_mode`, `project_version`, `project_prefix`, `TF_VAR_ENVIRONMENT`, `TF_VAR_GCP_REGION`
     - `build_service_account` — custom service account for pipeline build/deploy operations

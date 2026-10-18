@@ -1,9 +1,3 @@
-# SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-#
-
-# SPDX-License-Identifier: MIT
-
 # Pulumi Pipeline Template - Usage Guide
 
 This document describes how to use the Pulumi pipeline template (`pulumi_w_vars.yaml`) for deploying infrastructure with Pulumi in Azure DevOps.
@@ -22,7 +16,7 @@ The `pulumi_w_vars.yaml` template provides a standardized way to deploy Pulumi i
 
 1. **GCP Service Account**: Secure file named `{project-name}-account` with GCP credentials
 2. **GCS Bucket**: State storage bucket (automatically determined based on project version)
-3. **Azure DevOps**: Repository resource for `sz-deathStar-infra`
+3. **Azure DevOps**: Repository resource for `deathstar-infra`
 4. **Pulumi Project**: Valid `Pulumi.yaml` and `requirements.txt` in repository root
 
 ## Parameters
@@ -42,8 +36,8 @@ The `pulumi_w_vars.yaml` template provides a standardized way to deploy Pulumi i
 | `pulumi_version`        | string  | `3.100.0`              | Pulumi CLI version to install           |
 | `deathstar_mode`        | string  | `auto`                 | Repository mounting mode                |
 | `project_version`       | string  | `v2`                   | Project version (affects bucket naming) |
-| `project_prefix`        | string  | `sz-workspace-digital` | GCP project prefix                      |
-| `PULUMI_VAR_GCP_REGION` | string  | `southamerica-east1`   | GCP region                              |
+| `project_prefix`        | string  | `deathstar-example`    | GCP project prefix                      |
+| `PULUMI_VAR_GCP_REGION` | string  | `us-central1`          | GCP region                              |
 | `secure_file_list`      | object  | `none`                 | List of secure files to download        |
 | `group_var_secrets`     | object  | `none`                 | List of variable group secrets          |
 
@@ -51,36 +45,36 @@ The `pulumi_w_vars.yaml` template provides a standardized way to deploy Pulumi i
 
 ### Auto Mode (Recommended)
 
-Uses `sz-deathStar-infra` as base, adds current repo as overlay.
+Uses `deathstar-infra` as base, adds current repo as overlay.
 
 ```yaml
 parameters:
   deathstar_mode: auto
 ```
 
-**Use when**: Your repository contains only infrastructure configuration (JSON files), and you want to use the shared Pulumi components from `sz-deathStar-infra`.
+**Use when**: Your repository contains only infrastructure configuration (JSON files), and you want to use the shared Pulumi components from `deathstar-infra`.
 
 ### Self Mode
 
-Same as auto mode, but for the `sz-deathStar-infra` repository itself.
+Same as auto mode, but for the `deathstar-infra` repository itself.
 
 ```yaml
 parameters:
   deathstar_mode: self
 ```
 
-**Use when**: Running the pipeline from the `sz-deathStar-infra` repository.
+**Use when**: Running the pipeline from the `deathstar-infra` repository.
 
 ### Alone Mode
 
-Uses current repo as base, adds `sz-deathStar-infra` components as dependencies.
+Uses current repo as base, adds `deathstar-infra` components as dependencies.
 
 ```yaml
 parameters:
   deathstar_mode: alone
 ```
 
-**Use when**: Your repository has its own Pulumi code but needs shared components from `sz-deathStar-infra`.
+**Use when**: Your repository has its own Pulumi code but needs shared components from `deathstar-infra`.
 
 ## Usage Examples
 
@@ -95,17 +89,17 @@ trigger:
 
 resources:
   repositories:
-    - repository: sz-deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/sz-deathStar-infra
+      name: deathstar-infra
 
 extends:
-  template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
   parameters:
     deathstar_mode: auto
     PULUMI_VAR_ENVIRONMENT: prod
     pulumi_stack: prod
-    PULUMI_VAR_GCP_REGION: southamerica-east1
+    PULUMI_VAR_GCP_REGION: us-central1
 ```
 
 ### Example 2: Development with Debug Mode
@@ -119,12 +113,12 @@ trigger:
 
 resources:
   repositories:
-    - repository: sz-deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/sz-deathStar-infra
+      name: deathstar-infra
 
 extends:
-  template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
   parameters:
     debug: true # Preview only, no deployment
     deathstar_mode: auto
@@ -144,15 +138,15 @@ trigger:
 
 resources:
   repositories:
-    - repository: sz-deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/sz-deathStar-infra
+      name: deathstar-infra
 
 variables:
   - group: gcp-secrets # Variable group containing secrets
 
 extends:
-  template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
   parameters:
     deathstar_mode: auto
     PULUMI_VAR_ENVIRONMENT: prod
@@ -170,7 +164,7 @@ extends:
 ```yaml
 # azure-pipelines.yaml
 extends:
-  template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
   parameters:
     pulumi_version: 3.95.0 # Use specific version
     PULUMI_VAR_ENVIRONMENT: staging
@@ -185,19 +179,19 @@ trigger: none # Manual trigger only
 
 resources:
   repositories:
-    - repository: sz-deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/sz-deathStar-infra
+      name: deathstar-infra
 
 stages:
-  - template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  - template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
     parameters:
       deathstar_mode: auto
       PULUMI_VAR_ENVIRONMENT: dev
       pulumi_stack: dev
       debug: true # Preview for dev
 
-  - template: pipelines/templates/pulumi_w_vars.yaml@sz-deathStar-infra
+  - template: pipelines/templates/pulumi_w_vars.yaml@deathstar-infra
     parameters:
       deathstar_mode: auto
       PULUMI_VAR_ENVIRONMENT: staging
@@ -249,8 +243,8 @@ Additional secrets from `group_var_secrets` are set as `PULUMI_VAR_{SECRET_NAME}
 
 The pipeline uses GCS (Google Cloud Storage) for Pulumi state:
 
-- **Project v2**: `gs://sz-iac-{project-number}`
-- **Project v1**: `gs://sz-pulumi-{project-number}`
+- **Project v2**: `gs://iac-{project-number}`
+- **Project v1**: `gs://pulumi-{project-number}`
 
 The bucket is automatically determined based on the `project_version` parameter.
 
@@ -317,5 +311,5 @@ Use debug mode for:
 For issues or questions:
 
 1. Check the [Pulumi documentation](https://www.pulumi.com/docs/)
-2. Review the [sz-deathStar-infra README](../../README_PULUMI.md)
+2. Review the [deathstar-infra README](../../README_PULUMI.md)
 3. Contact the infrastructure team

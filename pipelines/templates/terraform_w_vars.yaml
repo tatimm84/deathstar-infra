@@ -29,13 +29,13 @@ parameters:
     default: v2
   - name: project_prefix
     type: string
-    default: sz-workspace-digital
+    default: deasthstar-example
   - name: build_service_account
     type: string
     default: ""
   - name: TF_VAR_GCP_REGION
     type: string
-    default: southamerica-east1
+    default: us-central1
   - name: TF_VAR_ENVIRONMENT
     type: string
     default: prod
@@ -89,10 +89,10 @@ stages:
                   Write-Output $env:PROJECT_VERSION
                   Write-Output ($env:PROJECT_VERSION -eq 'v2')
                   if ($env:PROJECT_VERSION -eq 'v2') {
-                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]sz-iac-$env:gcpProjectNumber"
+                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]iac-$env:gcpProjectNumber"
                   }
                   else {
-                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]sz-terraform-$env:gcpProjectNumber"
+                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]terraform-$env:gcpProjectNumber"
                   }
                   Write-Output $env:GCP_VAR_TERRAFORM_BUCKET
                 }
@@ -137,8 +137,8 @@ stages:
         steps:
           # Mount - DeathStar Modes: AUTO and SELF
           - ${{ if or(eq(parameters.deathstar_mode, 'auto'), eq(parameters.deathstar_mode, 'self')) }}:
-              # Path base - from sz-deathStar-infra
-              - checkout: sz-deathStar-infra
+              # Path base - from deathstar-infra
+              - checkout: deathstar-infra
                 path: s
               # Path add Repo
               - checkout: self
@@ -146,7 +146,7 @@ stages:
               # Copy files repo to base
               - task: CopyFiles@2
                 displayName: Copy infra folder
-                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                condition: ne(variables['Build.Repository.Name'], 'deathstar-infra')
                 inputs:
                   SourceFolder: $(Agent.BuildDirectory)/s/repo
                   TargetFolder: $(Agent.BuildDirectory)/s
@@ -154,7 +154,7 @@ stages:
               # Copy files infra/test to base [???]
               - task: CopyFiles@2
                 displayName: Copy test folder
-                condition: eq(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                condition: eq(variables['Build.Repository.Name'], 'deathstar-infra')
                 inputs:
                   SourceFolder: $(Agent.BuildDirectory)/s/infra/test
                   TargetFolder: $(Agent.BuildDirectory)/s/infra
@@ -165,12 +165,12 @@ stages:
               - checkout: self
                 path: s
               # Path add DeathStar
-              - checkout: sz-deathStar-infra
+              - checkout: deathstar-infra
                 path: s/deathStar
               # Copy files deathStar/terraform/modules to base
               - task: CopyFiles@2
                 displayName: Copy terraform modules folder
-                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                condition: ne(variables['Build.Repository.Name'], 'deathstar-infra')
                 inputs:
                   SourceFolder: $(Agent.BuildDirectory)/s/deathStar/terraform/modules
                   TargetFolder: $(Agent.BuildDirectory)/s/terraform/modules

@@ -1,14 +1,8 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
-# Terraform — sz-deathStar-infra
+# Terraform — deathstar-infra
 
 ## Visão geral
 
-Esta pasta contém a infraestrutura como código em Terraform usada pelo projeto `sz-deathStar-infra`. O layout inclui um conjunto de módulos reutilizáveis para recursos GCP em `modules/gcp/`, além de arquivos de configuração de nível superior que orquestram a criação dos recursos.
+Esta pasta contém a infraestrutura como código em Terraform usada pelo projeto `deathstar-infra`. O layout inclui um conjunto de módulos reutilizáveis para recursos GCP em `modules/gcp/`, além de arquivos de configuração de nível superior que orquestram a criação dos recursos.
 
 ## Estrutura principal
 

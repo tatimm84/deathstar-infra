@@ -1,10 +1,4 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
-# sz-deathStar-infra
+# deathstar-infra
 
 Infrastructure automation templates and Terraform helper pipelines for Google Cloud Platform (GCP).
 
@@ -25,7 +19,7 @@ You can use this project as a central infrastructure template repository that yo
 
 ## Execution modes
 
-`sz-deathStar-infra` supports three main operation modes that control how your repository and the centralized infra templates are combined:
+`deathstar-infra` supports three main operation modes that control how your repository and the centralized infra templates are combined:
 
 - [Auto](docs/en/modes/auto.md): Use DeathStar-managed JSON + standard Terraform resources. Fast start for low-to-medium complexity projects.
 - [Self](docs/en/modes/self.md): Use DeathStar-managed JSON plus optional `self_*.tf` files from the application repo (good for medium complexity).
@@ -42,9 +36,9 @@ See `docs/en/index.md` and `docs/en/deployment.md` for details and usage pattern
 ```yaml
 resources:
   repositories:
-    - repository: sz-deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/sz-deathStar-infra
+      name: deathstar-infra
       ref: v_0.3.0
 ```
 
@@ -52,7 +46,7 @@ resources:
 
 ```yaml
 stages:
-  - template: pipelines/templates/terraform_w_vars.yaml@sz-deathStar-infra
+  - template: pipelines/templates/terraform_w_vars.yaml@deathstar-infra
     parameters:
       project_prefix: my-project-prefix
       TF_VAR_ENVIRONMENT: ${{ variables.TF_VAR_ENVIRONMENT }}
@@ -77,17 +71,17 @@ terraform apply
 Example variables you may set (as environment variables or in `terraform.tfvars`):
 
 ```text
-TF_VAR_AZURE_DEVOPS_REPO = sz-deathstar-example-feat
+TF_VAR_AZURE_DEVOPS_REPO = deathstar-example
 TF_VAR_ENVIRONMENT = dev
-TF_VAR_GCP_PROJECT = sz-snop-dev
-TF_VAR_GCP_REGION = southamerica-east1
+TF_VAR_GCP_PROJECT = deathstar-example-dev
+TF_VAR_GCP_REGION = us-central1
 ```
 
 To remove or import resources in the state:
 
 ```bash
-terraform state rm google_storage_bucket.buckets["sz-snop-__env__-docs.json"]
-terraform import google_storage_bucket.buckets["sz-snop-__env__-docs.json"] sz-snop-dev/sz-snop-dev-doc
+terraform state rm google_storage_bucket.buckets["deathstar-example-__env__-docs.json"]
+terraform import google_storage_bucket.buckets["deathstar-example-__env__-docs.json"] deathstar-example-dev/deathstar-example-dev-doc
 ```
 
 ## Pipelines & recommended CI configuration

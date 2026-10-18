@@ -31,9 +31,9 @@ pool:
 # -------------------------------------------------------------
 resources:
   repositories:
-    - repository: deathStar-infra
+    - repository: deathstar-infra
       type: git
-      name: Nucleo_Digital/deathStar-infra
+      name: deathstar-infra
       ref: refs/tags/v1.0.0
 
 # -------------------------------------------------------------
@@ -46,9 +46,9 @@ parameters:
   - name: project_version
     default: v1
   - name: project_prefix
-    default: sz-snop
+    default: deathstar-example
   - name: region
-    default: southamerica-east1
+    default: us-central1
 
 # -------------------------------------------------------------
 # Variables
@@ -77,5 +77,5 @@ stages:
       TF_VAR_ENVIRONMENT: ${{ variables.TF_VAR_ENVIRONMENT }}
       TF_VAR_GCP_REGION: ${{ parameters.region }}
       secure_file_list:
-        - WILD_CARD_SUZANONET_2025.key
-        - WILD_CARD_SUZANONET_2025.pem
+        - WILD_CARD.key
+        - WILD_CARD.pem

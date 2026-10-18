@@ -23,7 +23,7 @@ module "bigquery" {
 | Name           | Type        | Default            | Description                     |
 | -------------- | ----------- | ------------------ | ------------------------------- |
 | gcp_project    | string      | —                  | GCP project id                  |
-| gcp_region     | string      | southamerica-east1 | GCP region                      |
+| gcp_region     | string      | us-central1 | GCP region                      |
 | dataset_create | bool        | true               | Create dataset                  |
 | dataset_id     | string      | —                  | Dataset id                      |
 | table_create   | bool        | true               | Create table                    |

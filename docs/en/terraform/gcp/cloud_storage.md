@@ -23,7 +23,7 @@ module "cloud_storage" {
 | Name                        | Type        | Default            | Description                       |
 | --------------------------- | ----------- | ------------------ | --------------------------------- |
 | gcp_project                 | string      | null               | GCP project id                    |
-| gcp_region                  | string      | southamerica-east1 | GCP region                        |
+| gcp_region                  | string      | us-central1 | GCP region                        |
 | bucket_create               | bool        | true               | Create the bucket                 |
 | bucket                      | string      | —                  | Bucket name                       |
 | default_event_based_hold    | bool        | null               | Default event-based hold          |

@@ -42,7 +42,7 @@ Terraform modules maintained by DeathStar can still be used as part of your setu
 
 ```
 module "examplo_module" {
-    source                           = "./modules/gcp/bigquery""git::https://dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-infra//terraform/modules/gcp/bigquery?ref=v_0.1.3"
+    source                           = "./modules/gcp/bigquery""git::https://dev.azure.com/_git/deathstar-infra//terraform/modules/gcp/bigquery?ref=v_0.1.3"
     source                           = "./modules/gcp/bigquery"
     # Module-specific variables
 }
@@ -53,7 +53,5 @@ Source locally details:
 ```
 "git::[AZURE_DEVOPS_REPO_LINK]//[MODULE_PATH]?ref=[BRANCH_VERSION]"
 
-ex.: "git::https://dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-infra//terraform/modules/gcp/bigquery?ref=v_0.1.3"
+ex.: "git::https://dev.azure.com/_git/deathstar-infra//terraform/modules/gcp/bigquery?ref=v_0.1.3"
 ```
-
-For implementation examples and ready-to-use resources, visit the [DeathStar - Examples Repository](https://dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-example).

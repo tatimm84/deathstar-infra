@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Death Star - Execution Modes - AUTO
 
 ## Usage Recommendation
@@ -31,5 +25,3 @@ Infrastructure provisioning is defined using .JSON files and managed by DeathSta
 ```
 
 **Important**, no terraform file is needed.
-
-For implementation examples and ready-to-use resources, visit the [DeathStar - Examples Repository](https://dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-example?path=/infra/gcp/auto).

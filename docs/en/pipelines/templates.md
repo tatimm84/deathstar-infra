@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Pipeline templates (`pipelines/templates`)
 
 Short: Reusable YAML snippets and templates that are included by the main pipeline definitions. Templates encapsulate common jobs (docs build, terraform flow, cost checks, publishing) so they can be reused across repositories.
@@ -27,13 +21,13 @@ Reference a template inside a pipeline using the `template:` syntax and pass req
 
 ```yaml
 stages:
-  - template: pipelines/templates/terraform_w_vars.yaml@sz-deathStar-infra
+  - template: pipelines/templates/terraform_w_vars.yaml@deathstar-infra
     parameters:
       deathstar_mode: auto
       project_version: v1
-      project_prefix: sz-snop
+      project_prefix: deathstar-example
       TF_VAR_ENVIRONMENT: dev
-      TF_VAR_GCP_REGION: southamerica-east1
+      TF_VAR_GCP_REGION: us-central1
 ```
 
 ## Notes and recommendations

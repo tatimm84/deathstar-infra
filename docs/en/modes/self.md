@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Death Star - Execution Modes - SELF
 
 ## Usage Recommendation
@@ -39,5 +33,3 @@ Infrastructure provisioning is defined using .JSON files and managed by DeathSta
 ```
 
 **Important**, only the additional Terraform files need to be defined manually. All standard DeathStar modules and their configurations will be automatically included in the Terraform path when the pipeline is executed.
-
-For implementation examples and ready-to-use resources, visit the [DeathStar - Examples Repository](https://dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-example).

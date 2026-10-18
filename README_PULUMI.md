@@ -1,10 +1,6 @@
-# SPDX-FileCopyrightText: 2025 Suzano S.A.
+# Pulumi Infrastructure - deathstar-infra
 
-# SPDX-License-Identifier: MIT
-
-# Pulumi Infrastructure - sz-deathStar-infra
-
-This directory contains the Pulumi version of the sz-deathStar-infra infrastructure, converted from Terraform.
+This directory contains the Pulumi version of the deathstar-infra infrastructure, converted from Terraform.
 
 ## Overview
 
@@ -38,7 +34,7 @@ The Pulumi infrastructure is written in Python and provides the same functionali
    **Using uv (Recommended - 10-100x faster)**:
 
    ```bash
-   cd c:\Users\t.machado\Downloads\Projetos\sz-deathStar-infra\pulumi
+   cd c:\Users\XPTO\Downloads\deathstar-infra\pulumi
 
    # Install uv if not already installed
    # Windows (PowerShell)
@@ -51,7 +47,7 @@ The Pulumi infrastructure is written in Python and provides the same functionali
    **Using pip (Legacy)**:
 
    ```bash
-   cd c:\Users\t.machado\Downloads\Projetos\sz-deathStar-infra\pulumi
+   cd c:\Users\XPTO\Downloads\deathstar-infra\pulumi
    pip install -r requirements.txt
    ```
 
@@ -64,16 +60,16 @@ The Pulumi infrastructure is written in Python and provides the same functionali
 
 ### Create a Pulumi Stack
 
-If any password required, this is the name of the gcp_project, like for example sz-workspace-digital-feat
+If any password required, this is the name of the gcp_project, like for example deathstar-example-feat
 
 ```bash
-pulumi login <IAC_BUCKET_NAME> # example: gs://sz-terraform-333608256663
+pulumi login <IAC_BUCKET_NAME> # example: gs://iac-333608256663
 
 # Select stack or Create a new stack (e.g., dev, staging, prod)
-pulumi stack select <REPO_NAME> || pulumi stack init <REPO_NAME> #example: sz-gurobi-service
+pulumi stack select <REPO_NAME> || pulumi stack init <REPO_NAME> #example: deathstar-example
 
 # Configure GCP project
-pulumi config set gcp:project <GCP_PROJECT> # example: sz-workspace-digital-feat
+pulumi config set gcp:project <GCP_PROJECT> # example: deathstar-example
 pulumi config set gcp:region <GCP_REGION> # example: us-central1
 
 # Obter access token curto da SA para usar como senha no Artifact Registry
@@ -85,7 +81,7 @@ pulumi config get ci:TOKEN_SA >/dev/null || { echo "TOKEN_SA não setado"; exit 
 # Set required configuration
 pulumi config set ENVIRONMENT <ENV> # example: feat
 pulumi config set UID_NOW $(date +%Y%m%d%H%M)
-pulumi config set AZURE_DEVOPS_REPO <REPO_NAME> # example: sz-gurobi-service
+pulumi config set AZURE_DEVOPS_REPO <REPO_NAME> # example: deathstar-example
 pulumi config set PROJECT_NUMBER <PROJECT_NUMBER> # example: 333608256663
 
 # Set optional configuration
@@ -94,7 +90,7 @@ pulumi config set SRC_DOCS_PATH ../../docs
 pulumi config set SRC_INFRA_PATH ../../infra
 
 # Set secrets (encrypted)
-pulumi config set --secret PULUMI_CONFIG_PASSPHRASE <GCP_PROJECT> # example: sz-workspace-digital-feat
+pulumi config set --secret PULUMI_CONFIG_PASSPHRASE <GCP_PROJECT> # example: deathstar-example
 pulumi config set --secret SQL_USER_PW your-password
 ```
 
@@ -104,13 +100,13 @@ Alternatively, create a `Pulumi.dev.yaml` file:
 
 ```yaml
 config:
-  gcp:project: sz-snop-dev
-  gcp:region: southamerica-east1
-  sz-deathStar-infra:ENVIRONMENT: dev
-  sz-deathStar-infra:UID_NOW: "202412081200"
-  sz-deathStar-infra:AZURE_DEVOPS_REPO: sz-deathStar-example-feat
-  sz-deathStar-infra:PROJECT_NUMBER: "1234567890"
-  sz-deathStar-infra:SQL_USER_PW:
+  gcp:project: deathstar-example
+  gcp:region: us-central1
+  deathstar-infra:ENVIRONMENT: dev
+  deathstar-infra:UID_NOW: "202412081200"
+  deathstar-infra:AZURE_DEVOPS_REPO: deathstar-example
+  deathstar-infra:PROJECT_NUMBER: "1234567890"
+  deathstar-infra:SQL_USER_PW:
     secure: AAABAxxxx... # encrypted value
 ```
 
@@ -153,7 +149,7 @@ pulumi stack
 ## Project Structure
 
 ```
-sz-deathStar-infra/
+deathstar-infra/
 ├── pulumi/                 # Pulumi infrastructure (NEW LOCATION)
 │   ├── Pulumi.yaml         # Project configuration
 │   ├── requirements.txt    # Python dependencies

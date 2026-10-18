@@ -29,7 +29,7 @@ Este módulo cria os seguintes recursos:
 module "dataform" {
   source      = "../../modules/gcp/dataform"
   gcp_project = var.project_id
-  gcp_region  = "southamerica-east1"
+  gcp_region  = "us-central1"
   name        = "my-dataform-repo"
 
   git_remote_settings = {
@@ -46,7 +46,7 @@ module "dataform" {
 module "dataform" {
   source      = "../../modules/gcp/dataform"
   gcp_project = var.project_id
-  gcp_region  = "southamerica-east1"
+  gcp_region  = "us-central1"
   name        = "my-dataform-repo"
 
   git_remote_settings = {
@@ -66,7 +66,7 @@ module "dataform" {
 module "dataform" {
   source      = "../../modules/gcp/dataform"
   gcp_project = var.project_id
-  gcp_region  = "southamerica-east1"
+  gcp_region  = "us-central1"
   name        = "my-dataform-repo"
 
   git_remote_settings = {

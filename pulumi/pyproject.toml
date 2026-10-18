@@ -1,5 +1,5 @@
 [project]
-name = "sz-deathstar-infra"
+name = "deathstar-infra"
 version = "1.0.0"
 description = "GCP Infrastructure as Code using Pulumi"
 readme = "README.md"

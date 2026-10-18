@@ -23,8 +23,8 @@ module "dataflow" {
 | Name                         | Type        | Default              | Description                           |
 | ---------------------------- | ----------- | -------------------- | ------------------------------------- |
 | gcp_project                  | string      | —                    | GCP project id                        |
-| gcp_region                   | string      | southamerica-east1   | GCP region                            |
-| gcp_zone                     | string      | southamerica-east1-c | GCP zone                              |
+| gcp_region                   | string      | us-central1   | GCP region                            |
+| gcp_zone                     | string      | us-central1-c | GCP zone                              |
 | name                         | string      | —                    | Dataflow job name                     |
 | template_gcs_path            | string      | —                    | GCS path to the Dataflow job template |
 | temp_gcs_region              | string      | —                    | GCS region for temporary data         |

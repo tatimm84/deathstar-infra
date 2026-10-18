@@ -22,7 +22,7 @@ module "gcloud" {
 | Name            | Type   | Default            | Description                            |
 | --------------- | ------ | ------------------ | -------------------------------------- |
 | gcp_project     | string | —                  | GCP project id                         |
-| gcp_region      | string | southamerica-east1 | GCP region                             |
+| gcp_region      | string | us-central1 | GCP region                             |
 | sha1_json       | string | null               | Hash/json reference used by the helper |
 | cmd_instruction | string | true               | Command instruction or flag            |
 

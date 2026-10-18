@@ -23,7 +23,7 @@ module "firestore" {
 | Name                              | Type   | Default            | Description                                   |
 | --------------------------------- | ------ | ------------------ | --------------------------------------------- |
 | gcp_project                       | string | —                  | GCP project id                                |
-| gcp_region                        | string | southamerica-east1 | GCP region                                    |
+| gcp_region                        | string | us-central1 | GCP region                                    |
 | database_create                   | bool   | true               | Create a Firestore database                   |
 | database                          | string | —                  | Firestore database name                       |
 | type                              | string | null               | Firestore database type                       |

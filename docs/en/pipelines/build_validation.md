@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # Build validation (CI quality gates)
 
 Short: A collection of pipeline YAMLs used as validation checks and quality gates that can be included in PR branch policies or run as standalone jobs.
@@ -31,7 +25,7 @@ Short: A collection of pipeline YAMLs used as validation checks and quality gate
 # Example: include val_pr_flow.yaml in your PR validation pipeline
 trigger: none
 stages:
-  - template: pipelines/build_validation/val_pr_flow.yaml@sz-deathStar-infra
+  - template: pipelines/build_validation/val_pr_flow.yaml@deathstar-infra
     parameters:
       python_version: 3.13
 ```

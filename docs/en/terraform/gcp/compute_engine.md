@@ -25,8 +25,8 @@ Below are the variables exposed by the module. See `terraform/modules/gcp/comput
 | Name                         | Type         | Default                 | Description                        |
 | ---------------------------- | ------------ | ----------------------- | ---------------------------------- |
 | gcp_project                  | string       | —                       | GCP project id                     |
-| gcp_region                   | string       | southamerica-east1      | GCP region                         |
-| gcp_zone                     | string       | southamerica-east1-b    | GCP zone                           |
+| gcp_region                   | string       | us-central1 | GCP region                         |
+| gcp_zone                     | string       | us-central1-b    | GCP zone                           |
 | name                         | string       | null                    | Compute Engine instance name       |
 | machine_type                 | string       | null                    | Machine type                       |
 | allow_stopping_for_update    | bool         | null                    | Allow stopping for update          |

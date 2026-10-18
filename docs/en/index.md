@@ -1,9 +1,3 @@
-<!--
-SPDX-FileCopyrightText: 2025 Suzano S.A.
-
-SPDX-License-Identifier: MIT
--->
-
 # DeathStar Infrastructure Documentation
 
 Welcome to the DeathStar Infrastructure documentation. This documentation provides an overview of the project, its components, and how to use the Terraform resources effectively.
@@ -37,7 +31,7 @@ To get started with the DeathStar Infrastructure project, follow these steps:
 2.Add deathstar as a submodule of your repository:
 
 ```
-git submodule add --force -b v_0.4.0 https://suzano@dev.azure.com/suzano/Nucleo_Digital/_git/sz-deathStar-infra
+git submodule add --force -b v_0.4.0 https://dev.azure.com/_git/deathstar-infra
 git submodule init
 git submodule sync          # Synchronizes the submodule's remote URL in local git config
 git submodule update --remote # Updates the submodule to the latest commit on the tracked branch
@@ -51,14 +45,14 @@ git submodule update --remote # Updates the submodule to the latest commit on th
 4. Initialize and preview changes:
    Terraform:
    ```
-   cd sz-deathStar-infra/terraform
+   cd deathstar-infra/terraform
    terraform init
    terraform plan # Preview changes
    terraform apply # Apply changes
    ```
    Pulumi:
    ```
-   cd sz-deathStar-infra/pulumi
+   cd deathstar-infra/pulumi
    pulumi preview # Preview changes
    pulumi up # Apply changes
    ```
