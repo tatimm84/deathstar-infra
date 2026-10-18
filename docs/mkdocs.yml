@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2025 Suzano S.A.
+#
+# SPDX-License-Identifier: MIT
+
+site_name: Deathstar Infra Documentation
+theme:
+  name: material
+  language: pt-BR
+  features:
+    - navigation.indexes
+  palette:
+    - scheme: slate
+  font:
+    text: Open Sans
+
+extra_css:
+  - stylesheets/mkdocsoad.css
+
+markdown_extensions:
+  - attr_list
+  - pymdownx.emoji
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - md_in_html
+  - pymdownx.critic
+  - pymdownx.caret
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.tilde
+  - tables
+  - abbr
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - neoteroi.mkdocsoad:
+      use_pymdownx: true
+  - git-revision-date-localized:
+      locale: pt
+      enable_creation_date: true
+      type: date

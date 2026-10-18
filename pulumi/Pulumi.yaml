@@ -1,0 +1,6 @@
+name: deathstar-infra
+runtime:
+  name: python
+  options:
+    toolchain: uv
+description: GCP Infrastructure as Code using Pulumi

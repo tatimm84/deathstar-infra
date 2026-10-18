@@ -1,0 +1,412 @@
+# SPDX-FileCopyrightText: 2025 Suzano S.A.
+#
+# SPDX-License-Identifier: MIT
+
+# --------------------------------------------------------------------
+# DATAPROC
+# --------------------------------------------------------------------
+# resource "google_dataproc_cluster" "clusters" {
+#     project = var.GCP_PROJECT
+#     region = var.GCP_REGION
+#     name     = "testcluster"
+#     graceful_decommission_timeout = "120s"
+# #       labels = {
+# #           foo = "bar"
+# #       }
+
+#   cluster_config {
+#     # staging_bucket = "dataproc-staging-bucket"
+#     gce_cluster_config {
+#     #   network    = "suzano-vpc-sz-snop-dev"
+#       subnetwork = "subnet-01"
+
+#     #   tags = ["foo", "bar"]
+#     }
+#     master_config {
+#       num_instances = 1
+#       machine_type  = "e2-standard-2"
+#       disk_config {
+#         boot_disk_type    = "pd-standard"
+#         boot_disk_size_gb = 30
+#       }
+#     }
+#     worker_config {
+#       num_instances = 0
+#       machine_type  = "e2-standard-2"
+
+#     }
+#     software_config {
+#       image_version = "2.0.35-debian10"
+#       override_properties = {
+#         "dataproc:dataproc.allow.zero.workers" = "true"
+#       }
+#     }
+#   }
+# }
+
+# module "gcloud" {
+#   source                 = "terraform-google-modules/gcloud/google"
+#   version                = "~>3.1.2"
+#   gcloud_sdk_version     = "453.0.0"
+#   platform               = "linux"
+#   skip_download          = "false"
+#   additional_components  = ["beta"]
+# #   additional_components  = ["kubectl", "beta"]
+#   count                  = 1
+#   create_cmd_entrypoint = "export CLOUDSDK_AUTH_ACCESS_TOKEN=${data.google_client_config.default.access_token} && gcloud dataproc clusters stop testcluster --project=${var.GCP_PROJECT} --region=${var.GCP_REGION}"
+# #   create_cmd_entrypoint  = <<-EOT
+# #     "gcloud auth login --no-browser" &&
+# #     "gcloud dataproc clusters stop testcluster --project=${var.GCP_PROJECT} --region=${var.GCP_REGION}"
+# #   EOT
+# #   create_cmd_body        = "gcloud dataproc clusters stop testcluster --project=${var.GCP_PROJECT} --region=${var.GCP_REGION}"
+# #   module_depends_on      = [ google_dataproc_cluster.clusters ]
+# #   depends_on = [ google_dataproc_cluster.clusters ]
+# }
+
+# ## https://github.com/terraform-google-modules/terraform-google-gcloud/blob/master/main.tf
+# resource "null_resource" "stop_dataproc" {
+# # triggers = merge({
+# #     md5                   = md5(var.create_cmd_entrypoint)
+# #     arguments             = md5(var.create_cmd_body)
+# #     prepare_cache_command = local.prepare_cache_command
+# #   }, var.create_cmd_triggers)
+
+#     #export CLOUDSDK_AUTH_ACCESS_TOKEN="${data.google_client_config.default.access_token}"
+#   provisioner "local-exec" {
+#     interpreter = ["/bin/bash", "-c"]
+#     working_dir = "${path.module}"
+#     command = "chmod +x install-istio.sh"
+#   }
+
+#   provisioner "local-exec" {
+#     interpreter = ["/bin/bash", "-c"]
+#     working_dir = "${path.module}"
+#     command = "./install-istio.sh"
+#   }
+# }
+
+# # locals {
+# #   tmp_credentials_path = "${path.module}/terraform-google-credentials.json"
+# #   cache_path           = local.skip_download ? "" : "${path.module}/cache/${random_id.cache[0].hex}"
+# #   gcloud_tar_path      = "${local.cache_path}/google-cloud-sdk.tar.gz"
+# #   gcloud_bin_path      = "${local.cache_path}/google-cloud-sdk/bin"
+# #   gcloud_bin_abs_path  = abspath(local.gcloud_bin_path)
+# #   components           = join(",", var.additional_components)
+
+# #   download_override = var.enabled ? data.external.env_override[0].result.download : ""
+# #   skip_download     = local.download_override == "always" ? false : (local.download_override == "never" ? true : var.skip_download)
+
+# #   gcloud              = local.skip_download ? "gcloud" : "${local.gcloud_bin_path}/gcloud"
+# #   gcloud_download_url = var.gcloud_download_url != "" ? var.gcloud_download_url : "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-${var.gcloud_sdk_version}-${var.platform}-x86_64.tar.gz"
+# #   jq_platform         = var.platform == "darwin" ? "osx-amd" : var.platform
+# #   jq_download_url     = var.jq_download_url != "" ? var.jq_download_url : "https://github.com/stedolan/jq/releases/download/jq-${var.jq_version}/jq-${local.jq_platform}64"
+
+# #   create_cmd_bin  = local.skip_download ? var.create_cmd_entrypoint : "${local.gcloud_bin_path}/${var.create_cmd_entrypoint}"
+# #   destroy_cmd_bin = local.skip_download ? var.destroy_cmd_entrypoint : "${local.gcloud_bin_path}/${var.destroy_cmd_entrypoint}"
+
+# #   wait = length(null_resource.additional_components[*].triggers) + length(
+# #     null_resource.gcloud_auth_service_account_key_file[*].triggers,
+# #     ) + length(null_resource.gcloud_auth_google_credentials[*].triggers,
+# #   ) + length(null_resource.run_command[*].triggers) + length(null_resource.run_destroy_command[*].triggers)
+
+# #   prepare_cache_command                        = "mkdir -p ${local.cache_path}"
+# #   download_gcloud_command                      = "curl -sL -o ${local.cache_path}/google-cloud-sdk.tar.gz ${local.gcloud_download_url}"
+# #   download_jq_command                          = "curl -sL -o ${local.cache_path}/jq ${local.jq_download_url} && chmod +x ${local.cache_path}/jq"
+# #   decompress_command                           = "tar -xzf ${local.gcloud_tar_path} -C ${local.cache_path} && cp ${local.cache_path}/jq ${local.cache_path}/google-cloud-sdk/bin/"
+# #   decompress_wrapper                           = fileexists(local.gcloud_tar_path) ? local.decompress_command : "${local.prepare_cache_command} && ${local.download_gcloud_command} && ${local.download_jq_command} && ${local.decompress_command}"
+# #   upgrade_command                              = "${local.gcloud} components update --quiet"
+# #   additional_components_command                = "${path.module}/scripts/check_components.sh ${local.gcloud} ${local.components}"
+# #   gcloud_auth_service_account_key_file_command = "${local.gcloud} auth activate-service-account --key-file ${var.service_account_key_file}"
+# #   gcloud_auth_google_credentials_command       = <<-EOT
+# #     printf "%s" "$GOOGLE_CREDENTIALS" > ${local.tmp_credentials_path} &&
+# #     ${local.gcloud} auth activate-service-account --key-file ${local.tmp_credentials_path}
+# #   EOT
+
+# # }
+
+# # resource "random_id" "cache" {
+# #   count = (!local.skip_download) ? 1 : 0
+
+# #   byte_length = 4
+# # }
+
+# # resource "null_resource" "module_depends_on" {
+# #   count = length(var.module_depends_on) > 0 ? 1 : 0
+
+# #   triggers = {
+# #     value = length(var.module_depends_on)
+# #   }
+# # }
+
+# # data "external" "env_override" {
+# #   count = var.enabled ? 1 : 0
+
+# #   program = ["${path.module}/scripts/check_env.sh"]
+# #   query   = {}
+# # }
+
+# # resource "null_resource" "prepare_cache" {
+# #   count = (var.enabled && !local.skip_download) ? 1 : 0
+
+# #   triggers = merge({
+# #     md5                   = md5(var.create_cmd_entrypoint)
+# #     arguments             = md5(var.create_cmd_body)
+# #     prepare_cache_command = local.prepare_cache_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.prepare_cache_command
+# #   }
+
+# #   depends_on = [null_resource.module_depends_on]
+# # }
+
+# # resource "null_resource" "download_gcloud" {
+# #   count = (var.enabled && !local.skip_download) ? 1 : 0
+
+# #   triggers = merge({
+# #     md5                     = md5(var.create_cmd_entrypoint)
+# #     arguments               = md5(var.create_cmd_body)
+# #     download_gcloud_command = local.download_gcloud_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.download_gcloud_command
+# #   }
+
+# #   depends_on = [null_resource.prepare_cache]
+# # }
+
+# # resource "null_resource" "download_jq" {
+# #   count = (var.enabled && !local.skip_download) ? 1 : 0
+
+# #   triggers = merge({
+# #     md5                 = md5(var.create_cmd_entrypoint)
+# #     arguments           = md5(var.create_cmd_body)
+# #     download_jq_command = local.download_jq_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.download_jq_command
+# #   }
+
+# #   depends_on = [null_resource.prepare_cache]
+# # }
+
+# # resource "null_resource" "decompress" {
+# #   count = (var.enabled && !local.skip_download) ? 1 : 0
+
+# #   triggers = merge({
+# #     md5                     = md5(var.create_cmd_entrypoint)
+# #     arguments               = md5(var.create_cmd_body)
+# #     decompress_command      = local.decompress_command
+# #     download_gcloud_command = local.download_gcloud_command
+# #     download_jq_command     = local.download_jq_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.decompress_command
+# #   }
+
+# #   depends_on = [null_resource.download_gcloud, null_resource.download_jq]
+# # }
+
+# # resource "null_resource" "upgrade" {
+# #   count = (var.enabled && var.upgrade && !local.skip_download) ? 1 : 0
+
+# #   depends_on = [null_resource.decompress]
+
+# #   triggers = merge({
+# #     md5             = md5(var.create_cmd_entrypoint)
+# #     arguments       = md5(var.create_cmd_body)
+# #     upgrade_command = local.upgrade_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.upgrade_command
+# #   }
+# # }
+
+# # resource "null_resource" "additional_components" {
+# #   count      = var.enabled && length(var.additional_components) > 0 ? 1 : 0
+# #   depends_on = [null_resource.decompress, null_resource.upgrade]
+
+# #   triggers = merge({
+# #     md5                           = md5(var.create_cmd_entrypoint)
+# #     arguments                     = md5(var.create_cmd_body)
+# #     additional_components_command = local.additional_components_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.additional_components_command
+# #   }
+# # }
+
+# # resource "null_resource" "gcloud_auth_service_account_key_file" {
+# #   count      = var.enabled && length(var.service_account_key_file) > 0 ? 1 : 0
+# #   depends_on = [null_resource.decompress, null_resource.upgrade]
+
+# #   triggers = merge({
+# #     md5                                          = md5(var.create_cmd_entrypoint)
+# #     arguments                                    = md5(var.create_cmd_body)
+# #     gcloud_auth_service_account_key_file_command = local.gcloud_auth_service_account_key_file_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.gcloud_auth_service_account_key_file_command
+# #   }
+# # }
+
+# # resource "null_resource" "gcloud_auth_google_credentials" {
+# #   count      = var.enabled && var.use_tf_google_credentials_env_var ? 1 : 0
+# #   depends_on = [null_resource.decompress, null_resource.upgrade]
+
+# #   triggers = merge({
+# #     md5                                    = md5(var.create_cmd_entrypoint)
+# #     arguments                              = md5(var.create_cmd_body)
+# #     gcloud_auth_google_credentials_command = local.gcloud_auth_google_credentials_command
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = self.triggers.gcloud_auth_google_credentials_command
+# #   }
+# # }
+
+# # resource "null_resource" "run_command" {
+# #   count = var.enabled ? 1 : 0
+
+# #   depends_on = [
+# #     null_resource.module_depends_on,
+# #     null_resource.decompress,
+# #     null_resource.additional_components,
+# #     null_resource.gcloud_auth_google_credentials,
+# #     null_resource.gcloud_auth_service_account_key_file
+# #   ]
+
+# #   triggers = merge({
+# #     md5                   = md5(var.create_cmd_entrypoint)
+# #     arguments             = md5(var.create_cmd_body)
+# #     create_cmd_entrypoint = var.create_cmd_entrypoint
+# #     create_cmd_body       = var.create_cmd_body
+# #     gcloud_bin_abs_path   = local.gcloud_bin_abs_path
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = create
+# #     command = <<-EOT
+# #     PATH=${self.triggers.gcloud_bin_abs_path}:$PATH
+# #     ${self.triggers.create_cmd_entrypoint} ${self.triggers.create_cmd_body}
+# #     EOT
+# #   }
+
+# # }
+
+# # resource "null_resource" "run_destroy_command" {
+# #   count = var.enabled ? 1 : 0
+
+# #   depends_on = [
+# #     null_resource.module_depends_on,
+# #     null_resource.decompress,
+# #     null_resource.additional_components,
+# #     null_resource.gcloud_auth_google_credentials,
+# #     null_resource.gcloud_auth_service_account_key_file
+# #   ]
+
+# #   triggers = merge({
+# #     destroy_cmd_entrypoint = var.destroy_cmd_entrypoint
+# #     destroy_cmd_body       = var.destroy_cmd_body
+# #     gcloud_bin_abs_path    = local.gcloud_bin_abs_path
+# #   }, var.create_cmd_triggers)
+
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = <<-EOT
+# #     PATH=${self.triggers.gcloud_bin_abs_path}:$PATH
+# #     ${self.triggers.destroy_cmd_entrypoint} ${self.triggers.destroy_cmd_body}
+# #     EOT
+# #   }
+# # }
+
+# # // Destroy provision steps in opposite dependency order
+# # // so they run before `run_destroy_command` destroy
+# # resource "null_resource" "gcloud_auth_google_credentials_destroy" {
+# #   count      = var.enabled && var.use_tf_google_credentials_env_var ? 1 : 0
+# #   depends_on = [null_resource.run_destroy_command]
+
+# #   triggers = {
+# #     gcloud_auth_google_credentials_command = local.gcloud_auth_google_credentials_command
+# #   }
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = self.triggers.gcloud_auth_google_credentials_command
+# #   }
+# # }
+
+# # resource "null_resource" "gcloud_auth_service_account_key_file_destroy" {
+# #   count      = var.enabled && length(var.service_account_key_file) > 0 ? 1 : 0
+# #   depends_on = [null_resource.run_destroy_command]
+
+# #   triggers = {
+# #     gcloud_auth_service_account_key_file_command = local.gcloud_auth_service_account_key_file_command
+# #   }
+
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = self.triggers.gcloud_auth_service_account_key_file_command
+# #   }
+# # }
+
+# # resource "null_resource" "additional_components_destroy" {
+# #   count      = var.enabled && length(var.additional_components) > 0 ? 1 : 0
+# #   depends_on = [null_resource.run_destroy_command]
+
+# #   triggers = {
+# #     additional_components_command = local.additional_components_command
+# #   }
+
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = self.triggers.additional_components_command
+# #   }
+# # }
+
+# # resource "null_resource" "upgrade_destroy" {
+# #   count = (var.enabled && var.upgrade && !local.skip_download) ? 1 : 0
+
+# #   depends_on = [
+# #     null_resource.additional_components_destroy,
+# #     null_resource.gcloud_auth_service_account_key_file_destroy,
+# #     null_resource.gcloud_auth_google_credentials_destroy
+# #   ]
+
+# #   triggers = {
+# #     upgrade_command = local.upgrade_command
+# #   }
+
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = self.triggers.upgrade_command
+# #   }
+# # }
+
+# # resource "null_resource" "decompress_destroy" {
+# #   count      = (var.enabled && !local.skip_download) ? 1 : 0
+# #   depends_on = [null_resource.upgrade_destroy]
+
+# #   triggers = {
+# #     decompress_wrapper = local.decompress_wrapper
+# #   }
+
+# #   provisioner "local-exec" {
+# #     when    = destroy
+# #     command = self.triggers.decompress_wrapper
+# #   }
+# # }

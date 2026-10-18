@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2025 Suzano S.A.
+#
+# SPDX-License-Identifier: MIT
+
+# Pulumi-specific ignores
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Pulumi state and config
+.pulumi/
+*.pulumi.yaml
+
+# Python virtual environment
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

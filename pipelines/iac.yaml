@@ -1,0 +1,81 @@
+# -------------------------------------------------------------
+# TEMPLATE - PIPELINE FOR INFRASTRUCTURE AS CODE
+# -------------------------------------------------------------
+
+# -------------------------------------------------------------
+# Trigger rules
+# -------------------------------------------------------------
+trigger:
+  branches:
+    include:
+      - main
+      - release
+      - develop
+  paths:
+    include:
+      - pipelines/iac.yaml
+      - infra/*
+      - src/*
+      - terraform/*
+      - pulumi/*
+
+# -------------------------------------------------------------
+# Pool
+# -------------------------------------------------------------
+pool:
+  name: Azure Pipelines
+  vmImage: ubuntu-latest
+
+# -------------------------------------------------------------
+# Resources
+# -------------------------------------------------------------
+resources:
+  repositories:
+    - repository: deathStar-infra
+      type: git
+      name: Nucleo_Digital/deathStar-infra
+      ref: refs/tags/v1.0.0
+
+# -------------------------------------------------------------
+# Parameters
+# -------------------------------------------------------------
+parameters:
+  - name: deathstar_mode
+    default: auto
+  # Parameters - GCP Project
+  - name: project_version
+    default: v1
+  - name: project_prefix
+    default: sz-snop
+  - name: region
+    default: southamerica-east1
+
+# -------------------------------------------------------------
+# Variables
+# -------------------------------------------------------------
+variables:
+  # Environment
+  - name: TF_VAR_ENVIRONMENT
+    ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+      value: prod
+    ${{ if eq(variables['Build.SourceBranchName'], 'release') }}:
+      value: qas
+    ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+      value: dev
+  - name: TF_VAR_GCP_PROJECT
+    value: ${{ parameters.project_prefix }}-${{ variables.TF_VAR_ENVIRONMENT }}
+
+# -------------------------------------------------------------
+# Stages
+# -------------------------------------------------------------
+stages:
+  - template: pipelines/templates/terraform_w_vars.yaml@deathStar-infra
+    parameters:
+      deathstar_mode: ${{ parameters.deathstar_mode }}
+      project_version: ${{ parameters.project_version }}
+      project_prefix: ${{ parameters.project_prefix }}
+      TF_VAR_ENVIRONMENT: ${{ variables.TF_VAR_ENVIRONMENT }}
+      TF_VAR_GCP_REGION: ${{ parameters.region }}
+      secure_file_list:
+        - WILD_CARD_SUZANONET_2025.key
+        - WILD_CARD_SUZANONET_2025.pem

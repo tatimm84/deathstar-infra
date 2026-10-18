@@ -1,0 +1,288 @@
+# -------------------------------------------------------------
+# PIPELINE FOR TERRAFORM DEPLOY
+# Reference: https://learn.microsoft.com/en-us/azure/devops/pipelines/process/templates?view=azure-devops&pivots=templates-includes
+# -------------------------------------------------------------
+
+# -------------------------------------------------------------
+# Parameters
+# -------------------------------------------------------------
+parameters:
+  - name: secure_file_list
+    type: object
+    default: none
+  - name: group_var_secrets
+    type: object
+    default: none
+  - name: debug
+    type: boolean
+    default: false
+  - name: terraform_version
+    type: string
+    default: 1.12.0
+  # DeathStar
+  - name: deathstar_mode
+    type: string
+    default: auto
+  # GCP Project
+  - name: project_version
+    type: string
+    default: v2
+  - name: project_prefix
+    type: string
+    default: sz-workspace-digital
+  - name: build_service_account
+    type: string
+    default: ""
+  - name: TF_VAR_GCP_REGION
+    type: string
+    default: southamerica-east1
+  - name: TF_VAR_ENVIRONMENT
+    type: string
+    default: prod
+  - name: TF_VAR_RUNNING_SERVICE_ACCOUNT
+    type: string
+    default: ""
+
+# -------------------------------------------------------------
+# Stages
+# -------------------------------------------------------------
+stages:
+  # Get git repository
+  - stage: DefineVars
+    displayName: Define Variables
+    condition: succeeded()
+    jobs:
+      - job: DefineEnvVars
+        displayName: Define environment Variables
+        variables:
+          project_version: ${{ parameters.project_version }}
+          TF_VAR_GCP_PROJECT: ${{ parameters.project_prefix }}-${{ parameters.TF_VAR_ENVIRONMENT }}
+          ${{ if ne(parameters.build_service_account, '') }}:
+            secure_file: ${{ parameters.build_service_account }}
+          ${{ else }}:
+            secure_file: ${{ variables.TF_VAR_GCP_PROJECT }}-account
+        steps:
+          - task: DownloadSecureFile@1
+            displayName: Download Secret
+            name: serviceAccount
+            inputs:
+              secureFile: ${{ variables.secure_file }}
+              retryCount: "3"
+
+          - task: PowerShell@2
+            displayName: Define GCP Variables
+            name: gcp_var
+            inputs:
+              targetType: inline
+              script: |
+                gcloud auth activate-service-account --key-file=$(serviceAccount.secureFilePath)
+
+                Write-Output $env:TF_VAR_GCP_PROJECT
+                gcloud config set project $env:TF_VAR_GCP_PROJECT
+
+                Write-Output ( ($env:TF_VAR_GCP_PROJECT -ne '') -Or ($(gcloud config get-value project) -ne '(unset)') )
+                if ( ($env:TF_VAR_GCP_PROJECT -ne '') -Or ($(gcloud config get-value project) -ne '(unset)') ) {
+                  $env:gcpProjectNumber=$(gcloud projects describe $env:TF_VAR_GCP_PROJECT --format="value(projectNumber)")
+                  Write-Output $env:gcpProjectNumber
+                  Write-Host "##vso[task.setvariable variable=TF_VAR_PROJECT_NUMBER;isOutput=true]$env:gcpProjectNumber"
+
+                  Write-Output $env:PROJECT_VERSION
+                  Write-Output ($env:PROJECT_VERSION -eq 'v2')
+                  if ($env:PROJECT_VERSION -eq 'v2') {
+                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]sz-iac-$env:gcpProjectNumber"
+                  }
+                  else {
+                    Write-Host "##vso[task.setvariable variable=terraform_bucket;isOutput=true]sz-terraform-$env:gcpProjectNumber"
+                  }
+                  Write-Output $env:GCP_VAR_TERRAFORM_BUCKET
+                }
+                else {
+                  Write-Host "GCP Project does not exist"
+                  exit 1
+                }
+
+                $env:uidNow=$(date "+%Y%m%d%H%M%S")
+                Write-Output $env:uidNow
+                Write-Host "##vso[task.setvariable variable=TF_VAR_UID_NOW;isOutput=true]$env:uidNow"
+
+          - task: Bash@3
+            displayName: Print environment variables
+            inputs:
+              targetType: inline
+              script: env | sort
+
+  # Terraform
+  - stage: Terraform
+    dependsOn:
+      - DefineVars
+    condition: succeeded()
+    jobs:
+      - job: Terraform
+        variables:
+          TF_VAR_GCP_PROJECT: ${{ parameters.project_prefix }}-${{ parameters.TF_VAR_ENVIRONMENT }}
+          TF_VAR_GCP_REGION: ${{ parameters.TF_VAR_GCP_REGION }}
+          TF_VAR_PROJECT_NUMBER: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.TF_VAR_PROJECT_NUMBER'] ]
+          TF_VAR_UID_NOW: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.TF_VAR_UID_NOW'] ]
+          TF_VAR_AZURE_DEVOPS_REPO: $(Build.Repository.Name)
+          TF_VAR_SONARCLOUD_TOKEN: $(sonarcloud_sa_token)
+          TF_VAR_SRC_INFRA_PATH: $(Agent.BuildDirectory)/s/infra
+          ${{ if ne(parameters.TF_VAR_RUNNING_SERVICE_ACCOUNT, '') }}:
+            TF_VAR_RUNNING_SERVICE_ACCOUNT: ${{ parameters.TF_VAR_RUNNING_SERVICE_ACCOUNT }}
+          ${{ else }}:
+            TF_VAR_RUNNING_SERVICE_ACCOUNT: ${{ variables.TF_VAR_GCP_PROJECT }}@appspot.gserviceaccount.com
+          service_connection: ${{ variables.TF_VAR_GCP_PROJECT }}-terraform
+          terraform_bucket: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.terraform_bucket'] ]
+          terraform_path: $(Agent.BuildDirectory)/s/terraform
+          terraform_prefix: "terraform/state-${{ variables.TF_VAR_AZURE_DEVOPS_REPO }}"
+        steps:
+          # Mount - DeathStar Modes: AUTO and SELF
+          - ${{ if or(eq(parameters.deathstar_mode, 'auto'), eq(parameters.deathstar_mode, 'self')) }}:
+              # Path base - from sz-deathStar-infra
+              - checkout: sz-deathStar-infra
+                path: s
+              # Path add Repo
+              - checkout: self
+                path: s/repo
+              # Copy files repo to base
+              - task: CopyFiles@2
+                displayName: Copy infra folder
+                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/repo
+                  TargetFolder: $(Agent.BuildDirectory)/s
+                  Contents: "**"
+              # Copy files infra/test to base [???]
+              - task: CopyFiles@2
+                displayName: Copy test folder
+                condition: eq(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/infra/test
+                  TargetFolder: $(Agent.BuildDirectory)/s/infra
+                  Contents: "**"
+          # Mount - DeathStar Modes: ALONE
+          - ${{ if eq(parameters.deathstar_mode, 'alone') }}:
+              # Path base - from repo
+              - checkout: self
+                path: s
+              # Path add DeathStar
+              - checkout: sz-deathStar-infra
+                path: s/deathStar
+              # Copy files deathStar/terraform/modules to base
+              - task: CopyFiles@2
+                displayName: Copy terraform modules folder
+                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/deathStar/terraform/modules
+                  TargetFolder: $(Agent.BuildDirectory)/s/terraform/modules
+                  Contents: "**"
+
+          - ${{ if ne(parameters.secure_file_list, 'none') }}:
+              - ${{ each file in parameters.secure_file_list }}:
+                  - task: DownloadSecureFile@1
+                    displayName: "Download Secret ${{ file }}"
+                    name: secureFile_${{ replace(replace(file,'.','_'),'-','_') }}
+                    inputs:
+                      secureFile: ${{ file }}
+                      retryCount: "3"
+
+                  - task: CmdLine@2
+                    displayName: "Download secret ${{ file }}"
+                    inputs:
+                      script: |
+                        echo Installing to the trusted directory...
+                        sudo chown root:root $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+                        sudo chmod a+r $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+                        sudo mkdir -p /etc/securefiles/
+                        sudo ln -s -t /etc/securefiles/ $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+
+          - ${{ if ne(parameters.group_var_secrets, 'none') }}:
+              - ${{ each secret in parameters.group_var_secrets }}:
+                  - task: CmdLine@2
+                    displayName: "Set Secret ${{ secret }}"
+                    name: ${{ secret }}
+                    inputs:
+                      script: |
+                        echo "##vso[task.setvariable variable=TF_VAR_${{ secret }}]$(${{ secret }})"
+
+          - task: CmdLine@2
+            displayName: Directory tree
+            inputs:
+              script: |
+                tree $(Agent.BuildDirectory)/s
+
+          - task: TerraformInstaller@1
+            displayName: "Install Terraform ${{ parameters.terraform_version }}"
+            inputs:
+              terraformVersion: ${{ parameters.terraform_version }}
+
+          - task: TerraformTaskV2@2
+            displayName: "Terraform init: gcp"
+            inputs:
+              provider: gcp
+              command: init
+              workingDirectory: $(terraform_path)
+              commandOptions: -input=false
+              backendServiceGCP: ${{ variables.service_connection }}
+              environmentServiceNameGCP: ${{ variables.service_connection }}
+              backendGCPBucketName: $(terraform_bucket)
+              backendGCPPrefix: ${{ variables.terraform_prefix }}
+
+          - ${{ if eq(parameters.debug, true) }}:
+              - task: Bash@3
+                displayName: "Terraform show state: gcp"
+                inputs:
+                  targetType: inline
+                  script: |
+                    cd $(terraform_path)
+                    echo "📦 Executando terraform show..."
+                    terraform show -json > state.json
+
+              - task: TerraformTaskV2@2
+                displayName: "Terraform plan: gcp"
+                inputs:
+                  provider: gcp
+                  command: plan
+                  workingDirectory: $(terraform_path)
+                  commandOptions: -input=false -out=tfplan.binary
+                  backendServiceGCP: ${{ variables.service_connection }}
+                  environmentServiceNameGCP: ${{ variables.service_connection }}
+                  backendGCPBucketName: $(terraform_bucket)
+                  backendGCPPrefix: ${{ variables.terraform_prefix }}
+
+              - task: Bash@3
+                displayName: "Terraform show plan: gcp"
+                inputs:
+                  targetType: inline
+                  script: |
+                    cd $(terraform_path)
+                    echo "📦 Executando terraform show..."
+                    terraform show -json tfplan.binary > plan.json
+
+              - task: CopyFiles@2
+                displayName: Copy debug artifacts
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/terraform
+                  Contents: |
+                    state.json
+                    plan.json
+                  TargetFolder: $(Build.ArtifactStagingDirectory)/TF_Artifact
+
+              - task: PublishPipelineArtifact@1
+                displayName: Publish Debug Artifact
+                inputs:
+                  targetPath: $(Build.ArtifactStagingDirectory)
+                  artifact: TF_Artifact
+                  publishLocation: pipeline
+
+          - ${{ if eq(parameters.debug, false) }}:
+              - task: TerraformTaskV2@2
+                displayName: "Terraform apply: gcp"
+                inputs:
+                  provider: gcp
+                  command: apply
+                  workingDirectory: $(terraform_path)
+                  commandOptions: -input=false
+                  backendServiceGCP: ${{ variables.service_connection }}
+                  environmentServiceNameGCP: ${{ variables.service_connection }}
+                  backendGCPBucketName: $(terraform_bucket)
+                  backendGCPPrefix: ${{ variables.terraform_prefix }}

@@ -1,0 +1,5 @@
+# SPDX-FileCopyrightText: 2025 Suzano S.A.
+#
+# SPDX-License-Identifier: MIT
+
+"""Utils package for Pulumi infrastructure."""

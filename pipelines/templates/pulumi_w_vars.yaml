@@ -1,0 +1,485 @@
+# -------------------------------------------------------------
+# PIPELINE FOR PULUMI DEPLOY
+# Referencia: https://learn.microsoft.com/pt-br/azure/devops/pipelines/process/templates?view=azure-devops
+# -------------------------------------------------------------
+
+# -------------------------------------------------------------
+# Parameters
+# -------------------------------------------------------------
+parameters:
+  - name: secure_file_list
+    type: object
+    default: none
+  - name: group_var_secrets
+    type: object
+    default: none
+  - name: debug
+    type: boolean
+    default: false
+  - name: pulumi_version
+    type: string
+    default: 3.219.0
+  # DeathStar
+  - name: deathstar_mode
+    type: string
+    default: auto
+  # GCP Project
+  - name: project_version
+    type: string
+    default: v2
+  - name: project_prefix
+    type: string
+    default: sz-workspace-digital
+  - name: build_service_account
+    type: string
+    default: ""
+  - name: PULUMI_VAR_GCP_REGION
+    type: string
+    default: us-central1
+  - name: PULUMI_VAR_ENVIRONMENT
+    type: string
+    default: prod
+  - name: PULUMI_VAR_RUNNING_SERVICE_ACCOUNT
+    type: string
+    default: ""
+  # Pulumi Stack
+  - name: pulumi_stack
+    type: string
+    default: prod
+
+# -------------------------------------------------------------
+# Stages
+# -------------------------------------------------------------
+stages:
+  # Get git repository
+  - stage: DefineVars
+    displayName: Define Variables
+    condition: succeeded()
+    jobs:
+      - job: DefineEnvVars
+        displayName: Define environment Variables
+        variables:
+          project_version: ${{ parameters.project_version }}
+          PULUMI_VAR_GCP_PROJECT: ${{ parameters.project_prefix }}-${{ parameters.PULUMI_VAR_ENVIRONMENT }}
+          ${{ if ne(parameters.build_service_account, '') }}:
+            secure_file: ${{ parameters.build_service_account }}
+          ${{ if eq(parameters.build_service_account, '') }}:
+            secure_file: ${{ variables.PULUMI_VAR_GCP_PROJECT }}-account
+        steps:
+          - task: DownloadSecureFile@1
+            displayName: Download Secret
+            name: serviceAccount
+            inputs:
+              secureFile: ${{ variables.secure_file }}
+              retryCount: "3"
+
+          - task: PowerShell@2
+            displayName: Define GCP Variables
+            name: gcp_var
+            inputs:
+              targetType: inline
+              script: |
+                gcloud auth activate-service-account --key-file=$(serviceAccount.secureFilePath)
+
+                Write-Output $env:PULUMI_VAR_GCP_PROJECT
+                gcloud config set project $env:PULUMI_VAR_GCP_PROJECT
+
+                Write-Output ( ($env:PULUMI_VAR_GCP_PROJECT -ne '') -Or ($(gcloud config get-value project) -ne '(unset)') )
+                if ( ($env:PULUMI_VAR_GCP_PROJECT -ne '') -Or ($(gcloud config get-value project) -ne '(unset)') ) {
+                  $env:gcpProjectNumber=$(gcloud projects describe $env:PULUMI_VAR_GCP_PROJECT --format="value(projectNumber)")
+                  Write-Output $env:gcpProjectNumber
+                  Write-Host "##vso[task.setvariable variable=PULUMI_VAR_PROJECT_NUMBER;isOutput=true]$env:gcpProjectNumber"
+
+                  Write-Output $env:PROJECT_VERSION
+                  Write-Output ($env:PROJECT_VERSION -eq 'v2')
+                  if ($env:PROJECT_VERSION -eq 'v2') {
+                    Write-Host "##vso[task.setvariable variable=pulumi_bucket;isOutput=true]sz-iac-$env:gcpProjectNumber"
+                  }
+                  else {
+                    Write-Host "##vso[task.setvariable variable=pulumi_bucket;isOutput=true]sz-terraform-$env:gcpProjectNumber"
+                  }
+                  Write-Output $env:PULUMI_BUCKET
+                }
+                else {
+                  Write-Host "GCP Project does not exist"
+                  exit 1
+                }
+
+                $env:uidNow=$(date "+%Y%m%d%H%M%S")
+                Write-Output $env:uidNow
+                Write-Host "##vso[task.setvariable variable=PULUMI_VAR_UID_NOW;isOutput=true]$env:uidNow"
+
+          - task: Bash@3
+            displayName: Print environment variables
+            inputs:
+              targetType: inline
+              script: env | sort
+
+  # Pulumi
+  - stage: Pulumi
+    dependsOn:
+      - DefineVars
+    condition: succeeded()
+    jobs:
+      - job: Pulumi
+        variables:
+          PULUMI_VAR_GCP_PROJECT: ${{ parameters.project_prefix }}-${{ parameters.PULUMI_VAR_ENVIRONMENT }}
+          ${{ if ne(parameters.build_service_account, '') }}:
+            secure_file: ${{ parameters.build_service_account }}
+          ${{ if eq(parameters.build_service_account, '') }}:
+            secure_file: ${{ variables.PULUMI_VAR_GCP_PROJECT }}-account
+          PULUMI_CONFIG_PASSPHRASE: $(PULUMI_VAR_GCP_PROJECT)
+          PULUMI_VAR_GCP_REGION: ${{ parameters.PULUMI_VAR_GCP_REGION }}
+          PULUMI_VAR_PROJECT_NUMBER: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.PULUMI_VAR_PROJECT_NUMBER'] ]
+          PULUMI_VAR_UID_NOW: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.PULUMI_VAR_UID_NOW'] ]
+          PULUMI_VAR_AZURE_DEVOPS_REPO: $(Build.Repository.Name)
+          PULUMI_VAR_SRC_INFRA_PATH: $(Agent.BuildDirectory)/s/infra
+          ${{ if ne(parameters.PULUMI_VAR_RUNNING_SERVICE_ACCOUNT, '') }}:
+            PULUMI_VAR_RUNNING_SERVICE_ACCOUNT: ${{ parameters.PULUMI_VAR_RUNNING_SERVICE_ACCOUNT }}
+          ${{ if eq(parameters.PULUMI_VAR_RUNNING_SERVICE_ACCOUNT, '') }}:
+            PULUMI_VAR_RUNNING_SERVICE_ACCOUNT: ${{ variables.PULUMI_VAR_GCP_PROJECT }}@appspot.gserviceaccount.com
+          service_connection: ${{ variables.PULUMI_VAR_GCP_PROJECT }}-terraform
+          pulumi_bucket: $[ stageDependencies.DefineVars.DefineEnvVars.outputs['gcp_var.pulumi_bucket'] ]
+          pulumi_path: $(Agent.BuildDirectory)/s/pulumi
+          pulumi_stack: $(Build.Repository.Name)
+        steps:
+          # Mount - DeathStar Modes: AUTO and SELF
+          - ${{ if or(eq(parameters.deathstar_mode, 'auto'), eq(parameters.deathstar_mode, 'self')) }}:
+              # Path base - from sz-deathStar-infra
+              - checkout: sz-deathStar-infra
+                path: s
+              # Path add Repo
+              - checkout: self
+                path: s/repo
+              # Copy files repo to base
+              - task: CopyFiles@2
+                displayName: Copy infra folder
+                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/repo
+                  TargetFolder: $(Agent.BuildDirectory)/s
+                  Contents: "**"
+              # Copy files infra/test to base [???]
+              - task: CopyFiles@2
+                displayName: Copy test folder
+                condition: eq(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/infra/test
+                  TargetFolder: $(Agent.BuildDirectory)/s/infra
+                  Contents: "**"
+          # Mount - DeathStar Modes: ALONE
+          - ${{ if eq(parameters.deathstar_mode, 'alone') }}:
+              # Path base - from repo
+              - checkout: self
+                path: s
+              # Path add DeathStar
+              - checkout: sz-deathStar-infra
+                path: s/deathStar
+              # Copy files deathStar/pulumi to base
+              - task: CopyFiles@2
+                displayName: Copy Pulumi folder
+                condition: ne(variables['Build.Repository.Name'], 'sz-deathStar-infra')
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s/deathStar/pulumi
+                  TargetFolder: $(Agent.BuildDirectory)/s/pulumi
+                  Contents: "**"
+
+          - ${{ if ne(parameters.secure_file_list, 'none') }}:
+              - ${{ each file in parameters.secure_file_list }}:
+                  - task: DownloadSecureFile@1
+                    displayName: "Download Secret ${{ file }}"
+                    name: secureFile_${{ replace(replace(file,'.','_'),'-','_') }}
+                    inputs:
+                      secureFile: ${{ file }}
+                      retryCount: "3"
+
+                  - task: CmdLine@2
+                    displayName: "Download secret ${{ file }}"
+                    inputs:
+                      script: |
+                        echo Installing to the trusted directory...
+                        sudo chown root:root $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+                        sudo chmod a+r $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+                        sudo mkdir -p /etc/securefiles/
+                        sudo ln -s -t /etc/securefiles/ $(secureFile_${{ replace(replace(file,'.','_'),'-','_') }}.secureFilePath)
+
+          - ${{ if ne(parameters.group_var_secrets, 'none') }}:
+              - ${{ each secret in parameters.group_var_secrets }}:
+                  - task: CmdLine@2
+                    displayName: "Set Secret ${{ secret }}"
+                    name: ${{ secret }}
+                    inputs:
+                      script: |
+                        echo "##vso[task.setvariable variable=PULUMI_VAR_${{ secret }}]$(${{ secret }})"
+
+          - task: CmdLine@2
+            displayName: Directory tree
+            inputs:
+              script: |
+                tree $(Agent.BuildDirectory)/s
+
+          - task: UsePythonVersion@0
+            displayName: Use Python 3.12
+            inputs:
+              versionSpec: "3.12"
+              addToPath: true
+
+          - task: Bash@3
+            displayName: Install uv
+            inputs:
+              targetType: inline
+              script: |
+                curl -LsSf https://astral.sh/uv/install.sh | sh
+                echo "##vso[task.prependpath]$HOME/.cargo/bin"
+
+          - task: Bash@3
+            displayName: Install Python dependencies with uv
+            inputs:
+              targetType: inline
+              script: |
+                cd $(pulumi_path)
+                uv venv --seed
+                uv sync
+
+          - task: Bash@3
+            displayName: Install Pulumi CLI ${{ parameters.pulumi_version }}
+            inputs:
+              targetType: inline
+              script: |
+                curl -fsSL https://get.pulumi.com | sh -s -- --version ${{ parameters.pulumi_version }}
+                echo "##vso[task.prependpath]$HOME/.pulumi/bin"
+
+          - task: Bash@3
+            displayName: Isolate Pulumi plugin home
+            inputs:
+              targetType: inline
+              script: |
+                export PULUMI_HOME="$(Agent.BuildDirectory)/.pulumi-home"
+                mkdir -p "$PULUMI_HOME"
+                echo "##vso[task.setvariable variable=PULUMI_HOME]$PULUMI_HOME"
+                echo "Pulumi home: $PULUMI_HOME"
+
+          - task: Bash@3
+            displayName: Detect pulumi_gcp version (SDK)
+            inputs:
+              targetType: inline
+              script: |
+                echo "Installed plugins (before):"
+                pulumi plugin ls || true
+
+                cd $(pulumi_path)
+                source .venv/bin/activate
+
+                # Obtém a versão do pacote PyPI "pulumi-gcp"
+                python - << 'EOF' | tee /tmp/pulumi_gcp_version.txt
+                import sys
+                try:
+                    from importlib.metadata import version, PackageNotFoundError
+                except ImportError:
+                    from importlib_metadata import version, PackageNotFoundError  # backport
+                try:
+                    print(version("pulumi-gcp"))
+                except PackageNotFoundError:
+                    print("")
+                EOF
+
+                SDK_VERSION="$(tr -d '[:space:]' < /tmp/pulumi_gcp_version.txt)"
+                if [ -z "$SDK_VERSION" ]; then
+                  echo "ERROR: pulumi-gcp não encontrado no .venv. Verifique o pyproject/uv sync."
+                  exit 1
+                fi
+                echo "SDK pulumi-gcp version: ${SDK_VERSION}"
+                echo "##vso[task.setvariable variable=PULUMI_GCP_SDK_VERSION]${SDK_VERSION}"
+
+          - task: Bash@3
+            displayName: Install matching Pulumi GCP provider plugin
+            inputs:
+              targetType: inline
+              script: |
+                echo "Cleaning old GCP plugins (PULUMI_HOME=$PULUMI_HOME)..."
+                pulumi plugin rm resource gcp --all --yes || true
+
+                SDK_VERSION="$(PULUMI_GCP_SDK_VERSION)"
+                if [ -z "$SDK_VERSION" ]; then
+                  echo "ERROR: pulumi-gcp SDK version not detected."
+                  exit 1
+                fi
+
+                # Pulumi CLI espera prefixo 'v' na instalação do plugin
+                PROVIDER_VERSION="v${SDK_VERSION}"
+                echo "Installing GCP provider plugin: ${PROVIDER_VERSION}"
+                pulumi plugin install resource gcp "${PROVIDER_VERSION}"
+
+                echo "Installed plugins (after):"
+                pulumi plugin ls
+
+          - task: DownloadSecureFile@1
+            displayName: Download Secret
+            name: serviceAccount
+            inputs:
+              secureFile: ${{ variables.secure_file }}
+              retryCount: "3"
+
+          - task: Bash@3
+            displayName: "Pulumi login: gcs"
+            env:
+              PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+            inputs:
+              targetType: inline
+              script: |
+                cd $(pulumi_path)
+                echo "🔐 Logging into Pulumi backend..."
+                export GOOGLE_APPLICATION_CREDENTIALS=$(serviceAccount.secureFilePath)
+                echo "##vso[task.setvariable variable=GOOGLE_APPLICATION_CREDENTIALS]$(serviceAccount.secureFilePath)"
+                pulumi login gs://$(pulumi_bucket)
+
+          - task: Bash@3
+            displayName: Pulumi stack select/create
+            env:
+              PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+            inputs:
+              targetType: inline
+              script: |
+                cd $(pulumi_path)
+                echo "📦 Selecting/creating Pulumi stack: $(pulumi_stack)..."
+                pulumi stack select $(pulumi_stack) || pulumi stack init $(pulumi_stack)
+
+          # --- BEGIN: Normalize stack provider version to SDK (GCP) ---
+          - task: Bash@3
+            displayName: Normalize stack provider version to SDK (GCP)
+            env:
+              PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+              PULUMI_NON_INTERACTIVE: "true"
+              PULUMI_SKIP_UPDATE_CHECK: "true"
+            inputs:
+              targetType: inline
+              script: |
+                set -euo pipefail
+                cd $(pulumi_path)
+                source .venv/bin/activate
+
+                # 1) Descobrir TARGET pela major do SDK (já detectado antes)
+                SDK_VERSION="$(PULUMI_GCP_SDK_VERSION)"
+                if [ -z "$SDK_VERSION" ]; then
+                  echo "ERROR: pulumi-gcp SDK version not detected."
+                  exit 1
+                fi
+                TARGET="${SDK_VERSION}"        # no snapshot usamos sem 'v
+                echo "Target GCP provider version for stack snapshot: $TARGET"
+
+                # 2) Exportar snapshot atual
+                pulumi stack select $(pulumi_stack)
+                pulumi stack export --file stack.json
+
+                # 3) Reescrever todos os providers 'pulumi:providers:gcp' para a versão TARGET
+                python - << 'PY' "$TARGET"
+                import json, sys
+                TARGET = sys.argv[1]
+                p = "stack.json"
+                with open(p) as f:
+                    data = json.load(f)
+
+                resources = data.get("deployment", {}).get("resources", [])
+                updated = 0
+                for r in resources:
+                    if r.get("type") == "pulumi:providers:gcp":
+                        block = r.get("inputs") if r.get("inputs") is not None else r.get("properties")
+                        if isinstance(block, dict):
+                            prev = block.get("version")
+                            if prev != TARGET:
+                                block["version"] = TARGET
+                                updated += 1
+                        if r.get("inputs") is not None:
+                            r["inputs"] = block
+                        elif r.get("properties") is not None:
+                            r["properties"] = block
+
+                data["deployment"]["resources"] = resources
+                with open(p, "w") as f:
+                    json.dump(data, f, indent=2)
+                print(f"providers_updated={updated}")
+                PY
+
+                echo "Importando snapshot atualizado..."
+                pulumi stack import --file stack.json
+
+                echo "Snapshot normalizado para GCP $TARGET."
+
+          - task: Bash@3
+            displayName: Configure Pulumi
+            env:
+              PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+              PULUMI_NON_INTERACTIVE: "true"
+              PULUMI_SKIP_UPDATE_CHECK: "true"
+            inputs:
+              targetType: inline
+              script: |
+                cd $(pulumi_path)
+                source .venv/bin/activate
+                pulumi stack select $(pulumi_stack)
+
+                echo "⚙️ Setting Pulumi configuration..."
+                pulumi config set gcp:project $(PULUMI_VAR_GCP_PROJECT)
+                pulumi config set gcp:region $(PULUMI_VAR_GCP_REGION)
+                pulumi config set ENVIRONMENT $(PULUMI_VAR_ENVIRONMENT)
+                pulumi config set PROJECT_NUMBER $(PULUMI_VAR_PROJECT_NUMBER)
+                pulumi config set UID_NOW $(PULUMI_VAR_UID_NOW)
+                pulumi config set AZURE_DEVOPS_REPO $(PULUMI_VAR_AZURE_DEVOPS_REPO)
+                pulumi config set SRC_INFRA_PATH $(PULUMI_VAR_SRC_INFRA_PATH)
+
+                # Obter access token curto da SA para usar como senha no Artifact Registry
+                gcloud auth activate-service-account --key-file=$(serviceAccount.secureFilePath)
+                TOKEN_SA="$(gcloud auth print-access-token)"
+                pulumi config set ci:TOKEN_SA "${TOKEN_SA}" --secret
+                pulumi config get ci:TOKEN_SA >/dev/null || { echo "TOKEN_SA não setado"; exit 1; }
+
+                # Set RUNNING_SERVICE_ACCOUNT if available
+                if [ ! -z "$PULUMI_VAR_RUNNING_SERVICE_ACCOUNT" ]; then
+                  pulumi config set RUNNING_SERVICE_ACCOUNT $(PULUMI_VAR_RUNNING_SERVICE_ACCOUNT)
+                fi
+
+                # Refresh the resources in a stack
+                pulumi refresh --yes
+
+          - ${{ if eq(parameters.debug, true) }}:
+              - task: Bash@3
+                displayName: "Pulumi preview: gcp"
+                env:
+                  PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+                inputs:
+                  targetType: inline
+                  script: |
+                    cd $(pulumi_path)
+                    source .venv/bin/activate
+                    echo "📦 Executando pulumi preview..."
+                    pulumi preview --json > preview.json
+                    pulumi preview --diff
+
+              - task: CopyFiles@2
+                displayName: Copy debug artifacts
+                inputs:
+                  SourceFolder: $(Agent.BuildDirectory)/s
+                  Contents: preview.json
+                  TargetFolder: $(Build.ArtifactStagingDirectory)/Pulumi_Artifact
+
+              - task: PublishPipelineArtifact@1
+                displayName: Publish Debug Artifact
+                inputs:
+                  targetPath: $(Build.ArtifactStagingDirectory)
+                  artifact: Pulumi_Artifact
+                  publishLocation: pipeline
+
+          - ${{ if eq(parameters.debug, false) }}:
+              - task: Bash@3
+                displayName: "Pulumi up: gcp"
+                env:
+                  PULUMI_CONFIG_PASSPHRASE: $(PULUMI_CONFIG_PASSPHRASE)
+                  GOOGLE_APPLICATION_CREDENTIALS: $(GOOGLE_APPLICATION_CREDENTIALS)
+                inputs:
+                  targetType: inline
+                  script: |
+                    cd $(pulumi_path)
+                    source .venv/bin/activate
+                    echo "🚀 Deploying infrastructure with Pulumi..."
+                    # export GOOGLE_APPLICATION_CREDENTIALS="$(GOOGLE_APPLICATION_CREDENTIALS)"
+                    pulumi up --yes --skip-preview
